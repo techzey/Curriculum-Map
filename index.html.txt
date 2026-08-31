@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BS Mechanical Engineering Curriculum Tracker</title>
+    <style>
+        :root {
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --primary: #1a365d;
+            --accent: #2b6cb0;
+            --passed: #c6f6d5;
+            --passed-border: #38a169;
+            --progress: #feebc8;
+            --progress-border: #dd6b20;
+            --not-taken: #edf2f7;
+            --not-taken-border: #cbd5e0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .header {
+            max-width: 1200px;
+            margin: 0 auto 20px;
+            background: var(--primary);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .header h1 { margin: 0 0 10px 0; font-size: 1.8rem; }
+        .stats-bar { display: flex; gap: 20px; flex-wrap: wrap; font-size: 0.95rem; }
+        .stat-item { background: rgba(255,255,255,0.1); padding: 8px 14px; border-radius: 4px; }
+
+        .progress-bar-container {
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.2);
+            height: 10px;
+            border-radius: 5px;
+            margin-top: 15px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background-color: #48bb78;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .controls {
+            max-width: 1200px;
+            margin: 0 auto 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border: 1px solid var(--accent);
+            background: white;
+            color: var(--accent);
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .filter-btn.active, .filter-btn:hover {
+            background: var(--accent);
+            color: white;
+        }
+
+        .grid-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .term-card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            border-top: 4px solid var(--accent);
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .term-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: var(--primary);
+            border-bottom: 2px solid #edf2f7;
+            padding-bottom: 5px;
+        }
+
+        .course-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            border-left: 5px solid var(--not-taken-border);
+            background-color: var(--not-taken);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .course-item:hover { transform: translateY(-1px); }
+
+        .course-item.passed {
+            background-color: var(--passed);
+            border-left-color: var(--passed-border);
+        }
+
+        .course-item.in-progress {
+            background-color: var(--progress);
+            border-left-color: var(--progress-border);
+        }
+
+        .course-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .course-title { font-size: 0.85rem; margin: 4px 0; color: #4a5568; }
+        .course-meta { font-size: 0.75rem; color: #718096; }
+        .status-badge {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+
+        .passed .status-badge { background: var(--passed-border); color: white; }
+        .in-progress .status-badge { background: var(--progress-border); color: white; }
+        .not-taken .status-badge { background: var(--not-taken-border); color: #4a5568; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>BS Mechanical Engineering Curriculum Tracker</h1>
+        <div class="stats-bar">
+            <div class="stat-item">Required Units: <strong>210</strong></div>
+            <div class="stat-item">Completed Units: <strong id="completed-units">0</strong></div>
+            <div class="stat-item">Remaining Units: <strong id="remaining-units">210</strong></div>
+            <div class="stat-item">Progress: <strong id="progress-percent">0%</strong></div>
+        </div>
+        <div class="progress-bar-container">
+            <div class="progress-bar-fill" id="progress-fill"></div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div>
+            <button class="filter-btn active" onclick="filterCourses('all', this)">All</button>
+            <button class="filter-btn" onclick="filterCourses('passed', this)">Passed</button>
+            <button class="filter-btn" onclick="filterCourses('in-progress', this)">In Progress</button>
+            <button class="filter-btn" onclick="filterCourses('not-taken', this)">Not Taken</button>
+        </div>
+        <button class="filter-btn" style="border-color: #e53e3e; color: #e53e3e;" onclick="resetProgress()">Reset All</button>
+    </div>
+
+    <div class="grid-container" id="curriculum-grid"></div>
+
+    <script>
+        const curriculumData = [
+            {
+                year: 1, term: 1, courses: [
+                    { code: "FW01-2", title: "Physical Activities Toward Health & Fitness 1", units: 2, req: "-" },
+                    { code: "GED101", title: "Understanding the Self", units: 3, req: "-" },
+                    { code: "GED108", title: "Art Appreciation", units: 3, req: "-" },
+                    { code: "MATH165", title: "College Algebra with Analytic Geometry", units: 3, req: "-" },
+                    { code: "MATH166", title: "College Trigonometry with Solid Mensuration", units: 3, req: "-" },
+                    { code: "ME112", title: "Orientation to Mechanical Engineering", units: 1, req: "-" },
+                    { code: "NSTP100", title: "National Service Training Program 1", units: 1.5, req: "-" },
+                    { code: "SFTY100", title: "Safety Engineering Management", units: 1, req: "-" }
+                ]
+            },
+            {
+                year: 1, term: 2, courses: [
+                    { code: "CM011", title: "General Chemistry for Engineers (Lecture)", units: 3, req: "-" },
+                    { code: "CM011L", title: "General Chemistry for Engineers (Lab)", units: 1, req: "Co: CM011" },
+                    { code: "FW02-2", title: "Physical Activities Toward Health & Fitness 2", units: 2, req: "FW01-2" },
+                    { code: "GED103", title: "Readings in Philippine History", units: 3, req: "-" },
+                    { code: "MATH170", title: "Linear Algebra with Computer Applications", units: 3, req: "MATH165" },
+                    { code: "MATH176", title: "Calculus 1", units: 3, req: "MATH165, MATH166" },
+                    { code: "ME123L-5", title: "Mechanical Processes 1: Workshop Theory", units: 2, req: "SFTY100" },
+                    { code: "NSTP200", title: "National Service Training Program 2", units: 1.5, req: "NSTP100" }
+                ]
+            },
+            {
+                year: 1, term: 3, courses: [
+                    { code: "FW03-2", title: "Physical Activities Toward Health & Fitness 3", units: 2, req: "FW02-2" },
+                    { code: "GED102", title: "Mathematics in the Modern World", units: 3, req: "-" },
+                    { code: "GED104", title: "Science, Technology and Society", units: 3, req: "-" },
+                    { code: "GED107", title: "Ethics", units: 3, req: "-" },
+                    { code: "MATH177", title: "Calculus 2", units: 3, req: "MATH176" },
+                    { code: "ME137L-5", title: "Mechanical Processes 2: Workshop Theory", units: 2, req: "ME123L-5" },
+                    { code: "NSTP300", title: "National Service Training Program 3", units: 1.5, req: "NSTP200" }
+                ]
+            },
+            {
+                year: 1, term: 4, courses: [
+                    { code: "DRAW10W-1", title: "Engineering Drawing and Plans", units: 1, req: "-" },
+                    { code: "FW04-2", title: "Physical Activities Toward Health & Fitness 4", units: 2, req: "FW03-2" },
+                    { code: "GED131", title: "Environmental Science and Sustainability", units: 3, req: "-" },
+                    { code: "MATH178", title: "Calculus 3", units: 3, req: "MATH177" },
+                    { code: "MATH179", title: "Differential Equations", units: 3, req: "MATH177" },
+                    { code: "NSTP400", title: "National Service Training Program 4", units: 1.5, req: "NSTP300" },
+                    { code: "PHY101", title: "Physics for Engineers 1", units: 2, req: "MATH176" },
+                    { code: "PHY101L", title: "Physics for Engineers Laboratory 1", units: 1, req: "MATH176" }
+                ]
+            },
+            {
+                year: 2, term: 1, courses: [
+                    { code: "CAD10L-1", title: "Computer-Aided Drafting", units: 1, req: "DRAW10W-1" },
+                    { code: "EE21-2", title: "Basic Electrical Engineering", units: 2, req: "MATH177, PHY101, PHY101L" },
+                    { code: "EE21L-2", title: "Basic Electrical Engineering Laboratory", units: 1, req: "MATH177, PHY101, PHY101L" },
+                    { code: "ME131-5", title: "Thermodynamics 1", units: 3, req: "CM011, MATH177, PHY101" },
+                    { code: "MEC30-5", title: "Statics of Rigid Bodies", units: 3, req: "MATH177, PHY101, PHY101L" },
+                    { code: "PHY105", title: "Physics for Engineers 2", units: 2, req: "PHY101, PHY101L" },
+                    { code: "PHY105L", title: "Physics for Engineers Laboratory 2", units: 1, req: "PHY101, PHY101L" }
+                ]
+            },
+            {
+                year: 2, term: 2, courses: [
+                    { code: "ECE20-2", title: "Basic Electronics", units: 2, req: "MATH177, PHY101, PHY101L" },
+                    { code: "ECE20L-2", title: "Basic Electronics Laboratory", units: 1, req: "MATH177, PHY101, PHY101L" },
+                    { code: "GED133", title: "Professional Communication", units: 3, req: "-" },
+                    { code: "MATH180", title: "Engineering Data Analysis", units: 3, req: "MATH177" },
+                    { code: "ME133-5", title: "Thermodynamics 2", units: 3, req: "ME131-5" },
+                    { code: "ME50-5", title: "Advanced Engineering Mathematics", units: 3, req: "MATH179" }
+                ]
+            }
+        ];
+
+        const STATUSES = ['not-taken', 'in-progress', 'passed'];
+        let courseStatus = JSON.parse(localStorage.getItem('me_curriculum_status')) || {};
+
+        function renderCurriculum() {
+            const grid = document.getElementById('curriculum-grid');
+            grid.innerHTML = '';
+
+            curriculumData.forEach(termData => {
+                const card = document.createElement('div');
+                card.className = 'term-card';
+                
+                let totalTermUnits = termData.courses.reduce((acc, c) => acc + c.units, 0);
+                
+                card.innerHTML = `<div class="term-title">Year ${termData.year} - Term ${termData.term} (${totalTermUnits} Units)</div>`;
+
+                termData.courses.forEach(course => {
+                    const status = courseStatus[course.code] || 'not-taken';
+                    const courseEl = document.createElement('div');
+                    courseEl.className = `course-item ${status}`;
+                    courseEl.dataset.status = status;
+                    courseEl.dataset.code = course.code;
+                    courseEl.onclick = () => cycleStatus(course.code);
+
+                    courseEl.innerHTML = `
+                        <div class="course-header">
+                            <span>${course.code}</span>
+                            <span class="status-badge">${status.replace('-', ' ')}</span>
+                        </div>
+                        <div class="course-title">${course.title}</div>
+                        <div class="course-meta">Units: ${course.units} | Pre-req: ${course.req}</div>
+                    `;
+                    card.appendChild(courseEl);
+                });
+
+                grid.appendChild(card);
+            });
+
+            updateStats();
+        }
+
+        function cycleStatus(code) {
+            const current = courseStatus[code] || 'not-taken';
+            const nextIndex = (STATUSES.indexOf(current) + 1) % STATUSES.length;
+            courseStatus[code] = STATUSES[nextIndex];
+            
+            localStorage.setItem('me_curriculum_status', JSON.stringify(courseStatus));
+            renderCurriculum();
+        }
+
+        function updateStats() {
+            let completedUnits = 0;
+            const TOTAL_UNITS = 210;
+
+            curriculumData.forEach(term => {
+                term.courses.forEach(course => {
+                    if (courseStatus[course.code] === 'passed') {
+                        completedUnits += course.units;
+                    }
+                });
+            });
+
+            const remainingUnits = TOTAL_UNITS - completedUnits;
+            const percentage = Math.round((completedUnits / TOTAL_UNITS) * 100);
+
+            document.getElementById('completed-units').innerText = completedUnits;
+            document.getElementById('remaining-units').innerText = remainingUnits;
+            document.getElementById('progress-percent').innerText = `${percentage}%`;
+            document.getElementById('progress-fill').style.width = `${percentage}%`;
+        }
+
+        function filterCourses(filter, btn) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            const items = document.querySelectorAll('.course-item');
+            items.forEach(item => {
+                if (filter === 'all' || item.classList.contains(filter)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        function resetProgress() {
+            if (confirm("Are you sure you want to reset all your course progress?")) {
+                courseStatus = {};
+                localStorage.removeItem('me_curriculum_status');
+                renderCurriculum();
+            }
+        }
+
+        // Initial Load
+        renderCurriculum();
+    </script>
+</body>
+</html>
