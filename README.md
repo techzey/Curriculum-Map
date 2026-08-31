@@ -4,7 +4,8 @@ An interactive, single-page web application designed for Mechanical Engineering 
 
 ---
 
-### 🚀 [Click Here to Access the Live Site](https://techzey.github.io/Curriculum-Map/)
+### 🚀 [Open Live Website](https://techzey.github.io/Curriculum-Map/)
+### 📄 [View Local Tracker File](index.html)
 
 ---
 
@@ -23,7 +24,7 @@ An interactive, single-page web application designed for Mechanical Engineering 
 
 ## 🛠️ How to Use
 
-1. Open the [Live Tracker](https://techzey.github.io/Curriculum-Map/).
+1. Launch the tracker via the [Live Website](https://techzey.github.io/Curriculum-Map/) or directly from [index.html](index.html).
 2. Click on a course box to update your current status for that subject.
 3. Use the filter buttons at the top to view specific subject groups.
 4. If you need to start over, click the **Reset All** button.
