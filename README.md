@@ -1,6 +1,6 @@
 # 🎓 Mechanical Engineering Curriculum Tracker
 
-An interactive, single-page web application designed for 1st-year Mechanical Engineering students to track their academic progress, prerequisites, and unit completions.
+An interactive, single-page web application designed for Mechanical Engineering students to track their academic progress, prerequisites, and unit completions.
 
 ---
 
@@ -26,7 +26,7 @@ An interactive, single-page web application designed for 1st-year Mechanical Eng
 1. Open the [Live Tracker](https://techzey.github.io/Curriculum-Map/).
 2. Click on a course box to update your current status for that subject.
 3. Use the filter buttons at the top to view specific subject groups.
-4. If you need to start over, click the **Reset All** button at the top right.
+4. If you need to start over, click the **Reset All** button.
 
 ---
 
@@ -35,9 +35,3 @@ An interactive, single-page web application designed for 1st-year Mechanical Eng
 * **HTML5**
 * **CSS3** (Flexbox & CSS Grid)
 * **Vanilla JavaScript** (LocalStorage API)
-
----
-
-## 📄 License
-
-This project is open-source and available under the [MIT License](LICENSE).
