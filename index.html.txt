@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BS ME Interactive Curriculum Graph</title>
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #1e293b;
+            --border-color: #e2e8f0;
+            --primary: #0f172a;
+            --accent: #2563eb;
+            --passed: #dcfce7;
+            --passed-border: #22c55e;
+            --progress: #fef3c7;
+            --progress-border: #f59e0b;
+            --not-taken: #f1f5f9;
+            --not-taken-border: #94a3b8;
+            --selected-border: #2563eb;
+            --prereq-color: #d97706;
+            --depends-color: #2563eb;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            position: relative;
+        }
+
+        .header {
+            max-width: 1400px;
+            margin: 0 auto 20px;
+            background: var(--primary);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .legend {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            font-size: 0.85rem;
+            flex-wrap: wrap;
+        }
+
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .legend-box { width: 14px; height: 14px; border-radius: 3px; }
+
+        /* SVG Overlay for Connections */
+        #svg-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .grid-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .year-section {
+            background: rgba(255, 255, 255, 0.6);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .year-title {
+            font-weight: 800;
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+
+        .terms-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+
+        @media (max-width: 1024px) {
+            .terms-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        .term-column {
+            background: white;
+            border-radius: 6px;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .term-header {
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 5px;
+        }
+
+        .course-card {
+            background: var(--not-taken);
+            border: 2px solid var(--not-taken-border);
+            border-radius: 6px;
+            padding: 8px 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .course-card.passed { background: var(--passed); border-color: var(--passed-border); }
+        .course-card.in-progress { background: var(--progress); border-color: var(--progress-border); }
+
+        .course-card.selected {
+            border-color: var(--selected-border) !important;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
+            background: white;
+            z-index: 2;
+        }
+
+        .course-card.is-prereq {
+            border-color: var(--prereq-color) !important;
+            box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.3);
+        }
+
+        .course-card.is-dependent {
+            border-color: var(--depends-color) !important;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
+        }
+
+        .course-card.dimmed { opacity: 0.25; }
+
+        .course-code { font-weight: bold; font-size: 0.85rem; }
+        .course-title { font-size: 0.75rem; color: #475569; margin-top: 2px; }
+        .course-units { font-size: 0.7rem; color: #94a3b8; margin-top: 4px; }
+    </style>
+</head>
+<body>
+
+    <svg id="svg-canvas">
+        <defs>
+            <marker id="arrow-prereq" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#d97706" />
+            </marker>
+            <marker id="arrow-depends" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb" />
+            </marker>
+        </defs>
+    </svg>
+
+    <div class="header">
+        <h1 style="margin:0 0 5px 0; font-size:1.5rem;">BS Mechanical Engineering Curriculum Graph</h1>
+        <p style="margin:0; font-size:0.9rem; opacity:0.8;">Click any subject to view prerequisite connections and dependent paths.</p>
+        
+        <div class="legend">
+            <div class="legend-item"><div class="legend-box" style="background:var(--not-taken-border)"></div> Not Completed</div>
+            <div class="legend-item"><div class="legend-box" style="background:var(--progress-border)"></div> In Progress</div>
+            <div class="legend-item"><div class="legend-box" style="background:var(--passed-border)"></div> Completed</div>
+            <div class="legend-item"><div class="legend-box" style="background:var(--selected-border)"></div> Selected Subject</div>
+            <div class="legend-item"><div class="legend-box" style="background:var(--prereq-color)"></div> Prerequisite Of Selected</div>
+            <div class="legend-item"><div class="legend-box" style="background:var(--depends-color)"></div> Depends On Selected</div>
+        </div>
+    </div>
+
+    <div class="grid-container" id="curriculum-container"></div>
+
+    <script>
+        const curriculumData = [
+            // YEAR 1
+            { year: 1, term: 1, code: "DRAW10W-1", title: "Engineering Drawing & Plans", units: 1, reqs: [] },
+            { year: 1, term: 1, code: "MATH165", title: "College Algebra", units: 3, reqs: [] },
+            { year: 1, term: 1, code: "MATH166", title: "Trigonometry", units: 3, reqs: [] },
+            { year: 1, term: 1, code: "SFTY100", title: "Safety Engineering", units: 1, reqs: [] },
+            
+            { year: 1, term: 2, code: "MATH176", title: "Calculus 1", units: 3, reqs: ["MATH165", "MATH166"] },
+            { year: 1, term: 2, code: "ME123L-5", title: "Mechanical Processes 1", units: 2, reqs: ["SFTY100"] },
+            
+            { year: 1, term: 3, code: "MATH177", title: "Calculus 2", units: 3, reqs: ["MATH176"] },
+            { year: 1, term: 3, code: "ME137L-5", title: "Mechanical Processes 2", units: 2, reqs: ["ME123L-5"] },
+
+            { year: 1, term: 4, code: "PHY101", title: "Physics for Engineers 1", units: 2, reqs: ["MATH176"] },
+            { year: 1, term: 4, code: "MATH178", title: "Calculus 3", units: 3, reqs: ["MATH177"] },
+
+            // YEAR 2
+            { year: 2, term: 1, code: "CAD10L-1", title: "Computer-Aided Drafting", units: 1, reqs: ["DRAW10W-1"] },
+            { year: 2, term: 1, code: "MEC30-5", title: "Statics of Rigid Bodies", units: 3, reqs: ["MATH177", "PHY101"] },
+            { year: 2, term: 1, code: "ME131-5", title: "Thermodynamics 1", units: 3, reqs: ["MATH177", "PHY101"] },
+
+            { year: 2, term: 2, code: "ME133-5", title: "Thermodynamics 2", units: 3, reqs: ["ME131-5"] },
+            { year: 2, term: 3, code: "MEC31-5", title: "Dynamics of Rigid Bodies", units: 2, reqs: ["MEC30-5"] },
+            { year: 2, term: 3, code: "ME130-5", title: "Fluid Mechanics", units: 3, reqs: ["ME131-5"] }
+        ];
+
+        let selectedCourseCode = null;
+
+        function buildGrid() {
+            const container = document.getElementById('curriculum-container');
+            container.innerHTML = '';
+
+            const years = [1, 2];
+            years.forEach(yr => {
+                const yearSec = document.createElement('div');
+                yearSec.className = 'year-section';
+                yearSec.innerHTML = `<div class="year-title">YEAR ${yr}</div>`;
+
+                const termsGrid = document.createElement('div');
+                termsGrid.className = 'terms-grid';
+
+                for (let t = 1; t <= 4; t++) {
+                    const termCol = document.createElement('div');
+                    termCol.className = 'term-column';
+                    termCol.innerHTML = `<div class="term-header">Term ${t}</div>`;
+
+                    const courses = curriculumData.filter(c => c.year === yr && c.term === t);
+                    courses.forEach(c => {
+                        const card = document.createElement('div');
+                        card.className = 'course-card';
+                        card.id = `card-${c.code}`;
+                        card.onclick = (e) => { e.stopPropagation(); selectCourse(c.code); };
+
+                        card.innerHTML = `
+                            <div class="course-code">${c.code}</div>
+                            <div class="course-title">${c.title}</div>
+                            <div class="course-units">${c.units} Units</div>
+                        `;
+                        termCol.appendChild(card);
+                    });
+
+                    termsGrid.appendChild(termCol);
+                }
+
+                yearSec.appendChild(termsGrid);
+                container.appendChild(yearSec);
+            });
+        }
+
+        function selectCourse(code) {
+            if (selectedCourseCode === code) {
+                selectedCourseCode = null;
+            } else {
+                selectedCourseCode = code;
+            }
+            updateGraph();
+        }
+
+        document.body.onclick = () => {
+            selectedCourseCode = null;
+            updateGraph();
+        };
+
+        function updateGraph() {
+            const svg = document.getElementById('svg-canvas');
+            // Clear existing lines
+            const existingPaths = svg.querySelectorAll('path');
+            existingPaths.forEach(p => p.remove());
+
+            const allCards = document.querySelectorAll('.course-card');
+            allCards.forEach(c => {
+                c.classList.remove('selected', 'is-prereq', 'is-dependent', 'dimmed');
+            });
+
+            if (!selectedCourseCode) return;
+
+            const selectedCourse = curriculumData.find(c => c.code === selectedCourseCode);
+            if (!selectedCourse) return;
+
+            // Highlight selected card
+            const selectedCardEl = document.getElementById(`card-${selectedCourseCode}`);
+            selectedCardEl.classList.add('selected');
+
+            // Find Direct Prerequisites
+            const prereqCodes = selectedCourse.reqs;
+
+            // Find Dependent Courses (courses that need selected course)
+            const dependentCourses = curriculumData.filter(c => c.reqs.includes(selectedCourseCode));
+
+            // Dim unrelated cards
+            allCards.forEach(c => {
+                const code = c.id.replace('card-', '');
+                if (code !== selectedCourseCode && !prereqCodes.includes(code) && !dependentCourses.some(d => d.code === code)) {
+                    c.classList.add('dimmed');
+                }
+            });
+
+            // Draw Prerequisite Lines (Prereq -> Selected)
+            prereqCodes.forEach(pCode => {
+                const pEl = document.getElementById(`card-${pCode}`);
+                if (pEl) {
+                    pEl.classList.add('is-prereq');
+                    drawCurve(pEl, selectedCardEl, '#d97706', 'arrow-prereq');
+                }
+            });
+
+            // Draw Dependent Lines (Selected -> Dependent)
+            dependentCourses.forEach(dCourse => {
+                const dEl = document.getElementById(`card-${dCourse.code}`);
+                if (dEl) {
+                    dEl.classList.add('is-dependent');
+                    drawCurve(selectedCardEl, dEl, '#2563eb', 'arrow-depends');
+                }
+            });
+        }
+
+        function drawCurve(fromEl, toEl, color, markerId) {
+            const svg = document.getElementById('svg-canvas');
+            const fromRect = fromEl.getBoundingClientRect();
+            const toRect = toEl.getBoundingClientRect();
+
+            // Adjust coordinates relative to document scroll position
+            const startX = fromRect.right + window.scrollX;
+            const startY = fromRect.top + (fromRect.height / 2) + window.scrollY;
+
+            const endX = toRect.left + window.scrollX;
+            const endY = toRect.top + (toRect.height / 2) + window.scrollY;
+
+            // Create a curved Bezier path
+            const dx = Math.abs(endX - startX) * 0.5;
+            const pathData = `M ${startX} ${startY} C ${startX + dx} ${startY}, ${endX - dx} ${endY}, ${endX} ${endY}`;
+
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', pathData);
+            path.setAttribute('stroke', color);
+            path.setAttribute('stroke-width', '2.5');
+            path.setAttribute('fill', 'none');
+            path.setAttribute('marker-end', `url(#${markerId})`);
+
+            svg.appendChild(path);
+        }
+
+        window.onresize = updateGraph;
+        window.onscroll = updateGraph;
+
+        buildGrid();
+    </script>
+</body>
+</html>
