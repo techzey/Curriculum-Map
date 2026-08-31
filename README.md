@@ -4,7 +4,7 @@ An interactive, single-page web application designed for 1st-year Mechanical Eng
 
 ---
 
-### 🚀 [Click Here to Access the Live Site](https://yourusername.github.io/me-curriculum-tracker/)
+### 🚀 [Click Here to Access the Live Site](https://techzey.github.io/curriculum-map/)
 
 ---
 
@@ -23,7 +23,7 @@ An interactive, single-page web application designed for 1st-year Mechanical Eng
 
 ## 🛠️ How to Use
 
-1. Open the [Live Tracker](https://yourusername.github.io/me-curriculum-tracker/).
+1. Open the [Live Tracker](https://techzey.github.io/curriculum-map/).
 2. Click on a course box to update your current status for that subject.
 3. Use the filter buttons at the top to view specific subject groups.
 4. If you need to start over, click the **Reset All** button at the top right.
