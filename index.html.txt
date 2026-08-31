@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BS Mechanical Engineering Full Curriculum Graph</title>
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #1e293b;
+            --border-color: #cbd5e1;
+            --primary: #0f172a;
+            --accent: #2563eb;
+            --passed: #dcfce7;
+            --passed-border: #22c55e;
+            --progress: #fef3c7;
+            --progress-border: #f59e0b;
+            --not-taken: #ffffff;
+            --not-taken-border: #94a3b8;
+            --selected-border: #2563eb;
+            --prereq-color: #d97706;
+            --depends-color: #2563eb;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            position: relative;
+        }
+
+        .header {
+            max-width: 1600px;
+            margin: 0 auto 20px;
+            background: var(--primary);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .legend {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            font-size: 0.85rem;
+            flex-wrap: wrap;
+        }
+
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .legend-box { width: 14px; height: 14px; border-radius: 3px; }
+
+        #svg-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .grid-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .year-section {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .year-title {
+            font-weight: 800;
+            font-size: 1.2rem;
+            margin-bottom: 12px;
+            color: var(--primary);
+            letter-spacing: 0.5px;
+        }
+
+        .terms-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        @media (max-width: 1200px) {
+            .terms-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        .term-column {
+            background: #f1f5f9;
+            border-radius: 6px;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .term-header {
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #475569;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 4px;
+        }
+
+        .course-card {
+            background: var(--not-taken);
+            border: 1.5px solid var(--not-taken-border);
+            border-radius: 6px;
+            padding: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            position: relative;
+        }
+
+        .course-card.passed { background: var(--passed); border-color: var(--passed-border); }
+        .course-card.in-progress { background: var(--progress); border-color: var(--progress-border); }
+
+        .course-card.selected {
+            border-color: var(--selected-border) !important;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
+            background: #ffffff;
+            z-index: 2;
+        }
+
+        .course-card.is-prereq {
+            border-color: var(--prereq-color) !important;
+            box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.3);
+            background: #fffbeeb;
+        }
+
+        .course-card.is-dependent {
+            border-color: var(--depends-color) !important;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
+            background: #eff6ff;
+        }
+
+        .course-card.dimmed { opacity: 0.2; }
+
+        .course-code { font-weight: 700; font-size: 0.8rem; color: #0f172a; }
+        .course-title { font-size: 0.72rem; color: #334155; margin-top: 2px; line-height: 1.2; }
+        .course-units { font-size: 0.65rem; color: #64748b; margin-top: 4px; }
+    </style>
+</head>
+<body>
+
+    <svg id="svg-canvas">
+        <defs>
+            <marker id="arrow-prereq" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#d97706" />
+            </marker>
+            <marker id="arrow-depends" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb" />
+            </marker>
+        </defs>
+    </svg>
+
+    <div class="header">
+        <h1 style="margin:0 0 5px 0; font-size:1.5rem;">BS Mechanical Engineering Full Curriculum Map</h1>
+        <p style="margin:0; font-size:0.85rem; opacity:0.85;">Click any course box to dynamically trace prerequisite pathways and dependent future courses.</p>
+        
+        <div class="legend">
+            <div class="legend-item"><div class="legend-box" style="background:var(--not-taken-border)"></div> Not Taken</div>
+            <div class="legend-item"><div class="legend-box" style="background:var(--selected-border)"></div> Selected Subject</div>
+            <div class="legend-item"><div class="legend-box" style="background:var(--prereq-color)"></div> Prerequisite Of Selected</div>
+            <div class="legend-item"><div class="legend-box" style="background:var(--depends-color)"></div> Depends On Selected</div>
+        </div>
+    </div>
+
+    <div class="grid-container" id="curriculum-container"></div>
+
+    <script>
+        const curriculumData = [
+            // --- YEAR 1 ---
+            { year: 1, term: 1, code: "FW01-2", title: "Physical Activities 1", units: 2, reqs: [] },
+            { year: 1, term: 1, code: "GED101", title: "Understanding the Self", units: 3, reqs: [] },
+            { year: 1, term: 1, code: "GED108", title: "Art Appreciation", units: 3, reqs: [] },
+            { year: 1, term: 1, code: "MATH165", title: "College Algebra w/ Analytic Geo", units: 3, reqs: [] },
+            { year: 1, term: 1, code: "MATH166", title: "Trigonometry w/ Solid Mensuration", units: 3, reqs: [] },
+            { year: 1, term: 1, code: "ME112", title: "Orientation to ME", units: 1, reqs: [] },
+            { year: 1, term: 1, code: "NSTP100", title: "NSTP 1", units: 1.5, reqs: [] },
+            { year: 1, term: 1, code: "SFTY100", title: "Safety Engineering Management", units: 1, reqs: [] },
+
+            { year: 1, term: 2, code: "CM011", title: "General Chemistry (Lec)", units: 3, reqs: [] },
+            { year: 1, term: 2, code: "CM011L", title: "General Chemistry (Lab)", units: 1, reqs: ["CM011"] },
+            { year: 1, term: 2, code: "FW02-2", title: "Physical Activities 2", units: 2, reqs: ["FW01-2"] },
+            { year: 1, term: 2, code: "GED103", title: "Readings in Philippine History", units: 3, reqs: [] },
+            { year: 1, term: 2, code: "MATH170", title: "Linear Algebra w/ Comp Apps", units: 3, reqs: ["MATH165"] },
+            { year: 1, term: 2, code: "MATH176", title: "Calculus 1", units: 3, reqs: ["MATH165", "MATH166"] },
+            { year: 1, term: 2, code: "ME123L-5", title: "Mechanical Processes 1", units: 2, reqs: ["SFTY100"] },
+            { year: 1, term: 2, code: "NSTP200", title: "NSTP 2", units: 1.5, reqs: ["NSTP100"] },
+
+            { year: 1, term: 3, code: "FW03-2", title: "Physical Activities 3", units: 2, reqs: ["FW02-2"] },
+            { year: 1, term: 3, code: "GED102", title: "Mathematics in Modern World", units: 3, reqs: [] },
+            { year: 1, term: 3, code: "GED104", title: "Science, Tech and Society", units: 3, reqs: [] },
+            { year: 1, term: 3, code: "GED107", title: "Ethics", units: 3, reqs: [] },
+            { year: 1, term: 3, code: "MATH177", title: "Calculus 2", units: 3, reqs: ["MATH176"] },
+            { year: 1, term: 3, code: "ME137L-5", title: "Mechanical Processes 2", units: 2, reqs: ["ME123L-5"] },
+            { year: 1, term: 3, code: "NSTP300", title: "NSTP 3", units: 1.5, reqs: ["NSTP200"] },
+
+            { year: 1, term: 4, code: "DRAW10W-1", title: "Engineering Drawing & Plans", units: 1, reqs: [] },
+            { year: 1, term: 4, code: "FW04-2", title: "Physical Activities 4", units: 2, reqs: ["FW03-2"] },
+            { year: 1, term: 4, code: "GED131", title: "Environmental Science", units: 3, reqs: [] },
+            { year: 1, term: 4, code: "MATH178", title: "Calculus 3", units: 3, reqs: ["MATH177"] },
+            { year: 1, term: 4, code: "MATH179", title: "Differential Equations", units: 3, reqs: ["MATH177"] },
+            { year: 1, term: 4, code: "NSTP400", title: "NSTP 4", units: 1.5, reqs: ["NSTP300"] },
+            { year: 1, term: 4, code: "PHY101", title: "Physics for Engineers 1", units: 2, reqs: ["MATH176"] },
+            { year: 1, term: 4, code: "PHY101L", title: "Physics Lab 1", units: 1, reqs: ["MATH176"] },
+
+            // --- YEAR 2 ---
+            { year: 2, term: 1, code: "CAD10L-1", title: "Computer-Aided Drafting", units: 1, reqs: ["DRAW10W-1"] },
+            { year: 2, term: 1, code: "EE21-2", title: "Basic Electrical Engineering", units: 2, reqs: ["MATH177", "PHY101", "PHY101L"] },
+            { year: 2, term: 1, code: "EE21L-2", title: "Basic Electrical Eng Lab", units: 1, reqs: ["MATH177", "PHY101", "PHY101L"] },
+            { year: 2, term: 1, code: "ME131-5", title: "Thermodynamics 1", units: 3, reqs: ["CM011", "MATH177", "PHY101"] },
+            { year: 2, term: 1, code: "MEC30-5", title: "Statics of Rigid Bodies", units: 3, reqs: ["MATH177", "PHY101", "PHY101L"] },
+            { year: 2, term: 1, code: "PHY105", title: "Physics for Engineers 2", units: 2, reqs: ["PHY101", "PHY101L"] },
+            { year: 2, term: 1, code: "PHY105L", title: "Physics Lab 2", units: 1, reqs: ["PHY101", "PHY101L"] },
+
+            { year: 2, term: 2, code: "ECE20-2", title: "Basic Electronics", units: 2, reqs: ["MATH177", "PHY101", "PHY101L"] },
+            { year: 2, term: 2, code: "ECE20L-2", title: "Basic Electronics Lab", units: 1, reqs: ["MATH177", "PHY101", "PHY101L"] },
+            { year: 2, term: 2, code: "GED133", title: "Professional Communication", units: 3, reqs: [] },
+            { year: 2, term: 2, code: "MATH180", title: "Engineering Data Analysis", units: 3, reqs: ["MATH177"] },
+            { year: 2, term: 2, code: "ME133-5", title: "Thermodynamics 2", units: 3, reqs: ["ME131-5"] },
+            { year: 2, term: 2, code: "ME50-5", title: "Advanced Eng Mathematics", units: 3, reqs: ["MATH179"] },
+
+            { year: 2, term: 3, code: "AIE10", title: "Intro to AI & Data Science", units: 3, reqs: [] },
+            { year: 2, term: 3, code: "CPE100L-1", title: "OOP Laboratory", units: 1, reqs: [] },
+            { year: 2, term: 3, code: "ME101-5", title: "Safety Eng for ME", units: 2, reqs: ["ME137L-5"] },
+            { year: 2, term: 3, code: "ME130-5", title: "Fluid Mechanics for ME", units: 3, reqs: ["ME131-5"] },
+            { year: 2, term: 3, code: "ME135-5", title: "Heat Transfer", units: 2, reqs: ["ME131-5"] },
+            { year: 2, term: 3, code: "ME55-5", title: "Math Modeling & Prob Solv", units: 2, reqs: ["MATH178"] },
+            { year: 2, term: 3, code: "MEC31-5", title: "Dynamics of Rigid Bodies", units: 2, reqs: ["MEC30-5"] },
+            { year: 2, term: 3, code: "RES101-5", title: "Methods of Research for ME", units: 1, reqs: ["GED104", "GED107", "MATH180"] },
+
+            { year: 2, term: 4, code: "EE22-2", title: "DC/AC Machinery", units: 3, reqs: ["EE21-2"] },
+            { year: 2, term: 4, code: "EE22L-2", title: "DC/AC Machinery Lab", units: 1, reqs: ["EE21L-2"] },
+            { year: 2, term: 4, code: "IE103-1", title: "Technopreneurship 101", units: 3, reqs: ["RES101-5"] },
+            { year: 2, term: 4, code: "ME134-5", title: "Combustion Engineering", units: 3, reqs: ["ME133-5"] },
+            { year: 2, term: 4, code: "ME134-5X", title: "Thermo-Fluids Exit Exam", units: 0, reqs: ["ME130-5", "ME135-5"] },
+            { year: 2, term: 4, code: "ME139L-5", title: "ME Laboratory 1", units: 2, reqs: ["ME130-5", "ME133-5"] },
+            { year: 2, term: 4, code: "MEC32-5", title: "Mechanics of Deformable Bodies", units: 3, reqs: ["MEC31-5"] },
+
+            // --- YEAR 3 ---
+            { year: 3, term: 1, code: "ME131L-5", title: "Computer Apps in ME", units: 1, reqs: ["MATH180", "MEC30-5"] },
+            { year: 3, term: 1, code: "ME141-5", title: "Refrigeration System", units: 3, reqs: ["ME133-5", "ME135-5"] },
+            { year: 3, term: 1, code: "ME143-5", title: "Fluid Machinery", units: 3, reqs: ["CAD10L-1", "ME130-5", "ME131-5"] },
+            { year: 3, term: 1, code: "ME144L-5", title: "ME Laboratory 2", units: 2, reqs: ["ME135-5", "ME139L-5"] },
+            { year: 3, term: 1, code: "ME146-5", title: "Vibration Engineering", units: 2, reqs: ["ME50-5"] },
+            { year: 3, term: 1, code: "ME170-5", title: "ME Laws, Ethics & Codes", units: 2, reqs: ["GED107", "IE103-1"] },
+            { year: 3, term: 1, code: "ME60P-5", title: "Numerical Methods", units: 2, reqs: ["ME50-5"] },
+
+            { year: 3, term: 2, code: "ME136P-5", title: "Eng Materials, Proc & Test", units: 3, reqs: ["ME137L-5", "MEC32-5"] },
+            { year: 3, term: 2, code: "ME138P-5", title: "Machine Elements", units: 3, reqs: ["MEC32-5"] },
+            { year: 3, term: 2, code: "ME148F-5", title: "Industrial Processes/Seminars", units: 2, reqs: ["ME101-5"] },
+            { year: 3, term: 2, code: "ME150P-5", title: "Air Conditioning & Vent", units: 1, reqs: ["ME141-5", "ME143-5"] },
+            { year: 3, term: 2, code: "ME152-5", title: "Power Plant Engineering 1", units: 2, reqs: ["ME134-5", "ME134-5X", "ME143-5"] },
+            { year: 3, term: 2, code: "ME152L-5", title: "ME Laboratory 3", units: 2, reqs: ["ME143-5", "ME144L-5"] },
+
+            { year: 3, term: 3, code: "EMG22-2", title: "Engineering Management", units: 2, reqs: [] },
+            { year: 3, term: 3, code: "ME110-5", title: "Engineering Economy", units: 3, reqs: ["MATH180"] },
+            { year: 3, term: 3, code: "ME117-5", title: "Machine Design 1", units: 3, reqs: ["ME136P-5", "ME138P-5"] },
+            { year: 3, term: 3, code: "ME160P-5", title: "Instrumentation & Control Eng", units: 1, reqs: ["ECE20-2", "ECE20L-2", "EE22-2", "EE22L-2"] },
+
+            { year: 3, term: 4, code: "GED109", title: "Gender and Society", units: 3, reqs: [] },
+            { year: 3, term: 4, code: "ME143-5X", title: "Mechanical Design Exit Exam", units: 0, reqs: ["ME117-5"] },
+            { year: 3, term: 4, code: "ME147-5X", title: "Power Plant Eng Exit Exam", units: 0, reqs: ["ME152-5"] },
+            { year: 3, term: 4, code: "ME149-5X", title: "Industrial Plant Eng Exit Exam", units: 0, reqs: ["ME150P-5"] },
+            { year: 3, term: 4, code: "ME151P-5", title: "Machine Design 2", units: 3, reqs: ["ME117-5"] },
+            { year: 3, term: 4, code: "ME152P-5", title: "Power Plant Engineering 2", units: 3, reqs: ["ME152-5"] },
+            { year: 3, term: 4, code: "ME158P-5", title: "Industrial Plant Engineering", units: 1, reqs: ["ME148F-5", "ME150P-5"] },
+            { year: 3, term: 4, code: "RZL110", title: "Life and Works of Rizal", units: 3, reqs: [] },
+
+            // --- YEAR 4 ---
+            { year: 4, term: 1, code: "GED106", title: "Purposive Communication", units: 3, reqs: [] },
+            { year: 4, term: 1, code: "ME199R-1", title: "On the Job Training 1", units: 3, reqs: [] },
+            { year: 4, term: 1, code: "ME200L-5", title: "Thesis 1", units: 1, reqs: ["RES101-5"] },
+
+            { year: 4, term: 2, code: "GED105", title: "The Contemporary World", units: 3, reqs: [] },
+            { year: 4, term: 2, code: "ME198D-5", title: "Applied Mechanical Eng", units: 2, reqs: ["ME143-5X", "ME147-5X", "ME149-5X", "ME151P-5", "ME152P-5", "ME158P-5"] },
+            { year: 4, term: 2, code: "ME199R-5", title: "On the Job Training 2", units: 3, reqs: [] },
+            { year: 4, term: 2, code: "ME201L-5", title: "Thesis 2 - Final Defense", units: 1, reqs: ["ME200L-5"] }
+        ];
+
+        let selectedCourseCode = null;
+
+        function buildGrid() {
+            const container = document.getElementById('curriculum-container');
+            container.innerHTML = '';
+
+            const years = [1, 2, 3, 4];
+            years.forEach(yr => {
+                const yearSec = document.createElement('div');
+                yearSec.className = 'year-section';
+                yearSec.innerHTML = `<div class="year-title">YEAR ${yr}</div>`;
+
+                const termsGrid = document.createElement('div');
+                termsGrid.className = 'terms-grid';
+
+                for (let t = 1; t <= 4; t++) {
+                    const courses = curriculumData.filter(c => c.year === yr && c.term === t);
+                    if (courses.length === 0 && t > 2 && yr === 4) continue; // skip empty late terms in Y4
+
+                    const termCol = document.createElement('div');
+                    termCol.className = 'term-column';
+                    termCol.innerHTML = `<div class="term-header">Term ${t}</div>`;
+
+                    courses.forEach(c => {
+                        const card = document.createElement('div');
+                        card.className = 'course-card';
+                        card.id = `card-${c.code}`;
+                        card.onclick = (e) => { e.stopPropagation(); selectCourse(c.code); };
+
+                        card.innerHTML = `
+                            <div class="course-code">${c.code}</div>
+                            <div class="course-title">${c.title}</div>
+                            <div class="course-units">${c.units} Credit Units</div>
+                        `;
+                        termCol.appendChild(card);
+                    });
+
+                    termsGrid.appendChild(termCol);
+                }
+
+                yearSec.appendChild(termsGrid);
+                container.appendChild(yearSec);
+            });
+        }
+
+        function selectCourse(code) {
+            if (selectedCourseCode === code) {
+                selectedCourseCode = null;
+            } else {
+                selectedCourseCode = code;
+            }
+            updateGraph();
+        }
+
+        document.body.onclick = () => {
+            selectedCourseCode = null;
+            updateGraph();
+        };
+
+        function updateGraph() {
+            const svg = document.getElementById('svg-canvas');
+            const existingPaths = svg.querySelectorAll('path');
+            existingPaths.forEach(p => p.remove());
+
+            const allCards = document.querySelectorAll('.course-card');
+            allCards.forEach(c => {
+                c.classList.remove('selected', 'is-prereq', 'is-dependent', 'dimmed');
+            });
+
+            if (!selectedCourseCode) return;
+
+            const selectedCourse = curriculumData.find(c => c.code === selectedCourseCode);
+            if (!selectedCourse) return;
+
+            const selectedCardEl = document.getElementById(`card-${selectedCourseCode}`);
+            selectedCardEl.classList.add('selected');
+
+            const prereqCodes = selectedCourse.reqs;
+            const dependentCourses = curriculumData.filter(c => c.reqs.includes(selectedCourseCode));
+
+            allCards.forEach(c => {
+                const code = c.id.replace('card-', '');
+                if (code !== selectedCourseCode && !prereqCodes.includes(code) && !dependentCourses.some(d => d.code === code)) {
+                    c.classList.add('dimmed');
+                }
+            });
+
+            prereqCodes.forEach(pCode => {
+                const pEl = document.getElementById(`card-${pCode}`);
+                if (pEl) {
+                    pEl.classList.add('is-prereq');
+                    drawCurve(pEl, selectedCardEl, '#d97706', 'arrow-prereq');
+                }
+            });
+
+            dependentCourses.forEach(dCourse => {
+                const dEl = document.getElementById(`card-${dCourse.code}`);
+                if (dEl) {
+                    dEl.classList.add('is-dependent');
+                    drawCurve(selectedCardEl, dEl, '#2563eb', 'arrow-depends');
+                }
+            });
+        }
+
+        function drawCurve(fromEl, toEl, color, markerId) {
+            const svg = document.getElementById('svg-canvas');
+            const fromRect = fromEl.getBoundingClientRect();
+            const toRect = toEl.getBoundingClientRect();
+
+            const startX = fromRect.right + window.scrollX;
+            const startY = fromRect.top + (fromRect.height / 2) + window.scrollY;
+
+            const endX = toRect.left + window.scrollX;
+            const endY = toRect.top + (toRect.height / 2) + window.scrollY;
+
+            const dx = Math.abs(endX - startX) * 0.4;
+            const pathData = `M ${startX} ${startY} C ${startX + dx} ${startY}, ${endX - dx} ${endY}, ${endX} ${endY}`;
+
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', pathData);
+            path.setAttribute('stroke', color);
+            path.setAttribute('stroke-width', '2.5');
+            path.setAttribute('fill', 'none');
+            path.setAttribute('marker-end', `url(#${markerId})`);
+
+            svg.appendChild(path);
+        }
+
+        window.onresize = updateGraph;
+        window.onscroll = updateGraph;
+
+        buildGrid();
+    </script>
+</body>
+</html>
